@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "backend of project",
   "main": "index.js",
-  "scripts": {
-    "dev": "nodemon src/index.js"
-  },
+  "type":"module",
+ "scripts": {
+  "dev": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+}
+,
   "keywords": [
     "js",
     "backend"
@@ -17,4 +19,5 @@
     "prettier": "^3.4.2"
 
   }
+
 }
