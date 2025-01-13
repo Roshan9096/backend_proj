@@ -27,9 +27,9 @@ const uploadOnCloudinary = async (localpath) => {
     }
 }
 
-cloudinary.uploader.upload(
-    'https://res.cloudinary.com/demo/image/upload/getting-started/shoes.jpg', {
-        public_id: 'shoes',
-    },
-    function(error, result){console.log(result)}
-    );
+// cloudinary.uploader.upload(
+//     'https://res.cloudinary.com/demo/image/upload/getting-started/shoes.jpg', {
+//         public_id: 'shoes',
+//     },
+//     function(error, result){console.log(result)}
+//     );
