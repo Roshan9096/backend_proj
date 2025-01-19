@@ -204,7 +204,7 @@ const refreshAccessToken = asyncHandler(async(req, res, next)=>{
 const changCurrentPassword = asyncHandler(async (req, res, next)=>{
     const {oldPassword, newPassword} = req.body;
     const user = await User.findById(req.user?._id)
-    const isPasswordcorrect = await User.isPasswordCorrect(oldPassword);
+    const isPasswordcorrect = await user.isPasswordCorrect(oldPassword);
     if(!isPasswordcorrect){
         throw new ApiError(401,"Invalid old password")
     }
@@ -218,7 +218,7 @@ const changCurrentPassword = asyncHandler(async (req, res, next)=>{
 
 const getcurrentUser = asyncHandler(async (req, res, next)=>{
     return res.status(200).json(
-        200,res.user,"Current user fatched successfully "
+        new ApiResponse(200,res.user,"Current user fatched successfully ")
     )
 });
 
@@ -300,14 +300,129 @@ const updateusercoverImage = asyncHandler(async (req,res)=>{
     )
 })
 
+const getuserChannelProfile = asyncHandler(async(req,res) => {
+
+    const{username} = req.params
+
+    if(!username?.trim()){
+        throw new ApiError(400,"User not found")
+    }
+
+    const channel = await User.aggregate([
+        {
+            $match:{
+                username: username?.toLowerCase()
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"channel",
+                as:"subscribers"
+            }
+        },
+        {
+            $lookup:{
+                from:"subscriptions",
+                localField:"_id",
+                foreignField:"subscriber",
+                as:"subscribedTo"
+            }
+        },
+        {
+            $addFields:{
+                subscribersCount:{
+                    $size:"$subscribers"
+                },
+                channelsubscribeToCount:{
+                    $size:"$subscribedTo"
+                },
+                isSubscribed:{
+                    $cond:{
+                        if:{$in:[req.user?._id,"$subscribers.subscriber"]},
+                        then:true,
+                        else:false
+                    }
+                }
+            }
+        },
+        {
+            $project:{
+                fullname:1,
+                username:1,
+                subscribersCount:1,
+                channelsubscribeToCount:1,
+                isSubscribed:1,
+                avatar:1,
+                coverImage:1,
+                email:1,
+             }
+        }
+    ])
+
+    if (!channel?.length) {
+        throw new ApiError(404,"Invalid channel")
+    }
+    return res.status(200)
+    .json(
+        new ApiResponse(200,channel[0],"user successfully subscribe")
+    )
+})
+
+const getUserwatchHistory = asyncHandler(async(req,res)=>{
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user._id)
+            }
+        },
+        {
+            $lookup:{
+                from:"Video",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                {
+                    $lookup:{
+                        from:"User",
+                        localField:"owner",
+                        foreignField:"_id",
+                        as:"owner",
+                        pipeline:[
+                            {
+                                $project:{
+                                    fullname:1,
+                                    username:1,
+                                    avatar:1
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    $addFields:{
+                        $first:"$owner"
+                    }
+                }
+                ]
+            }
+        }
+    ])
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,user[0].watchHistory,"watchHistory successfully"
+        )
+    )
+})
+
 export {
-    loginUser,
-    logoutUser,
-    registerUser,
-    refreshAccessToken,
     changCurrentPassword,
-    getcurrentUser,
-    updateuserAvatar,
-    updateusercoverImage
+    getcurrentUser, getuserChannelProfile,
+    getUserwatchHistory, loginUser,
+    logoutUser, refreshAccessToken, registerUser, updateuserAvatar,
+    updateusercoverImage, updateUserDetails
 };
 
